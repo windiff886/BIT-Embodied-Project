@@ -1,0 +1,10 @@
+# ALE 与深度学习依赖
+gymnasium[atari]>=0.29.0
+AutoROM[accept-rom-license]>=0.6.1
+pygame>=2.1.0
+
+# 数值计算
+numpy>=1.24.0
+
+# 图像处理
+opencv-python>=4.8.0
