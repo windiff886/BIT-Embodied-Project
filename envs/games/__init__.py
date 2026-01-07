@@ -5,12 +5,14 @@
 """
 
 from envs.games.video_pinball import VideoPinballEnv
+from envs.games.breakout import BreakoutEnv
 
 
 # 游戏注册表：游戏名称 -> 环境类
 GAME_REGISTRY = {
     'VideoPinball': VideoPinballEnv,
+    'Breakout': BreakoutEnv,
 }
 
 
-__all__ = ['GAME_REGISTRY']
+__all__ = ['GAME_REGISTRY', 'BreakoutEnv']

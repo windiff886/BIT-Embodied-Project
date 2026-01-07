@@ -14,6 +14,7 @@ from envs.base_env import BaseGameEnv
 from envs.wrappers import FrameStack, preprocess_frame, ClipRewardEnv
 from envs.games import GAME_REGISTRY
 from envs.games.video_pinball import VideoPinballEnv
+from envs.games.breakout import BreakoutEnv
 
 
 def make_env(game_name: str, frame_stack: int = 4, frame_skip: int = 4, 
@@ -53,4 +54,4 @@ def make_env(game_name: str, frame_stack: int = 4, frame_skip: int = 4,
     return env
 
 
-__all__ = ['make_env', 'BaseGameEnv', 'FrameStack', 'preprocess_frame', 'ClipRewardEnv', 'VideoPinballEnv']
+__all__ = ['make_env', 'BaseGameEnv', 'FrameStack', 'preprocess_frame', 'ClipRewardEnv', 'VideoPinballEnv', 'BreakoutEnv']

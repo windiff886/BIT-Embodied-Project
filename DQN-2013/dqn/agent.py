@@ -17,8 +17,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from dqn.network import QNetwork
-from dqn.replay_buffer import ReplayBuffer, Transition
+from .network import QNetwork
+from .replay_buffer import ReplayBuffer, Transition
 
 
 @dataclass
@@ -59,7 +59,7 @@ class DQNAgent:
         
         # 使用 torch.compile 加速 (PyTorch 2.0+)
         if self.use_compile:
-            self.q_network = torch.compile(self.q_network)
+            self.q_network = torch.compile(self.q_network)  
         
         # RMSProp 优化器 (论文使用)
         self.optimizer = optim.RMSprop(
@@ -102,7 +102,7 @@ class DQNAgent:
             选择的动作索引
         """
         # 评估模式使用固定低 epsilon
-        eps = 0.05 if eval_mode else self.epsilon
+        eps = 0.10 if eval_mode else self.epsilon
         
         if random.random() < eps:
             # 随机探索
@@ -113,6 +113,36 @@ class DQNAgent:
                 state_tensor = torch.from_numpy(state).unsqueeze(0).to(self.device)
                 q_values = self.q_network(state_tensor)
                 return q_values.argmax(dim=1).item()
+    
+    def select_actions_batch(self, states: np.ndarray, eval_mode: bool = False) -> List[int]:
+        """
+        批量选择动作（用于多环境并行）
+        
+        Args:
+            states: 批量状态 (N, 4, 84, 84)
+            eval_mode: 是否为评估模式
+        
+        Returns:
+            动作列表，长度为 N
+        """
+        n_envs = states.shape[0]
+        eps = 0.05 if eval_mode else self.epsilon
+        
+        # 批量计算 Q 值
+        with torch.no_grad():
+            states_tensor = torch.from_numpy(states).to(self.device)
+            q_values = self.q_network(states_tensor)
+            greedy_actions = q_values.argmax(dim=1).cpu().numpy()
+        
+        # 对每个环境应用 epsilon-greedy
+        actions = []
+        for i in range(n_envs):
+            if random.random() < eps:
+                actions.append(random.randint(0, self.n_actions - 1))
+            else:
+                actions.append(int(greedy_actions[i]))
+        
+        return actions
     
     def store_transition(self, transition: Transition):
         """

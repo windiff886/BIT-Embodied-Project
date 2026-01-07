@@ -42,6 +42,11 @@ class BaseGameEnv(ABC):
             render_mode=render_mode
         )
         
+        # gymnasium 兼容属性
+        self.metadata = self._env.metadata
+        self.action_space = self._env.action_space
+        self.observation_space = self._env.observation_space
+        
         # 缓存环境信息
         self._action_space_size = self._env.action_space.n
         self._observation_shape = (84, 84)  # 预处理后的形状

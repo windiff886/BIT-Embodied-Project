@@ -8,6 +8,8 @@ from typing import Tuple
 from collections import deque
 import numpy as np
 import cv2
+import gymnasium as gym
+from gymnasium import spaces
 
 
 def preprocess_frame(frame: np.ndarray, target_size: Tuple[int, int] = (84, 84)) -> np.ndarray:
@@ -57,27 +59,44 @@ class FrameStack:
         # 更新观测形状
         base_shape = env.get_observation_shape()
         self._observation_shape = (num_stack, base_shape[0], base_shape[1])
+        
+        # gymnasium 兼容属性
+        self.metadata = getattr(env, 'metadata', {'render_modes': []})
+        self.render_mode = getattr(env, 'render_mode', None)
+        self.action_space = getattr(env, 'action_space', None)
+        self.observation_space = spaces.Box(
+            low=0, high=255, 
+            shape=self._observation_shape, 
+            dtype=np.uint8
+        )
     
-    def reset(self, seed: int = None) -> np.ndarray:
+    def reset(self, seed: int = None, options: dict = None) -> Tuple[np.ndarray, dict]:
         """
         重置环境并初始化帧栈
         
         Args:
             seed: 随机种子
+            options: gymnasium 参数（用于兼容性）
         
         Returns:
             堆叠后的观测，形状 (num_stack, 84, 84)
+            info: 额外信息
         """
-        obs = self._env.reset(seed=seed)
+        result = self._env.reset(seed=seed)
+        # 兼容旧版 API（返回单个 obs）和新版 API（返回 obs, info）
+        if isinstance(result, tuple):
+            obs, info = result
+        else:
+            obs, info = result, {}
         
         # 用初始帧填充整个栈
         self._frames.clear()
         for _ in range(self._num_stack):
             self._frames.append(obs)
         
-        return self._get_stacked_obs()
+        return self._get_stacked_obs(), info
     
-    def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, dict]:
         """
         执行动作并更新帧栈
         
@@ -87,12 +106,19 @@ class FrameStack:
         Returns:
             stacked_obs: 堆叠后的观测 (num_stack, 84, 84)
             reward: 即时奖励
-            done: 是否终止
+            terminated: 是否终止
+            truncated: 是否截断
             info: 额外信息
         """
-        obs, reward, done, info = self._env.step(action)
+        result = self._env.step(action)
+        # 兼容旧版 API（4 值）和新版 API（5 值）
+        if len(result) == 4:
+            obs, reward, done, info = result
+            terminated, truncated = done, False
+        else:
+            obs, reward, terminated, truncated, info = result
         self._frames.append(obs)
-        return self._get_stacked_obs(), reward, done, info
+        return self._get_stacked_obs(), reward, terminated, truncated, info
     
     def _get_stacked_obs(self) -> np.ndarray:
         """
@@ -154,19 +180,36 @@ class ClipRewardEnv:
 
     def __init__(self, env):
         self._env = env
+        # gymnasium 兼容属性
+        self.metadata = getattr(env, 'metadata', {'render_modes': []})
+        self.render_mode = getattr(env, 'render_mode', None)
+        self.action_space = getattr(env, 'action_space', None)
+        self.observation_space = getattr(env, 'observation_space', None)
 
-    def reset(self, seed: int = None) -> np.ndarray:
-        return self._env.reset(seed=seed)
+    def reset(self, seed: int = None, options: dict = None) -> Tuple[np.ndarray, dict]:
+        result = self._env.reset(seed=seed)
+        # 兼容旧版 API
+        if isinstance(result, tuple):
+            return result
+        return result, {}
 
-    def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
-        obs, reward, done, info = self._env.step(action)
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, dict]:
+        result = self._env.step(action)
+        # 兼容旧版 API（4 值）和新版 API（5 值）
+        if len(result) == 4:
+            obs, reward, done, info = result
+            terminated, truncated = done, False
+        else:
+            obs, reward, terminated, truncated, info = result
+        
+        # 奖励裁剪
         if reward > 0:
             reward = 1.0
         elif reward < 0:
             reward = -1.0
         else:
             reward = 0.0
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
 
     def __getattr__(self, name):
         return getattr(self._env, name)
