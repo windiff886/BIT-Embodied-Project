@@ -7,6 +7,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple, Any, Optional
 import numpy as np
+from numpy.typing import NDArray
 import gymnasium as gym
 
 from envs.wrappers import preprocess_frame
@@ -45,7 +46,7 @@ class BaseGameEnv(ABC):
         self._action_space_size = self._env.action_space.n
         self._observation_shape = (84, 84)  # 预处理后的形状
     
-    def reset(self, seed: Optional[int] = None) -> np.ndarray:
+    def reset(self, seed: Optional[int] = None) -> NDArray[np.uint8]:
         """
         重置环境到初始状态
         
@@ -58,7 +59,7 @@ class BaseGameEnv(ABC):
         obs, info = self._env.reset(seed=seed)
         return preprocess_frame(obs)
     
-    def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
+    def step(self, action: int) -> Tuple[NDArray[np.float32], float, bool, dict]:
         """
         执行动作并返回环境反馈
         

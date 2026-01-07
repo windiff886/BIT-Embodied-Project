@@ -11,8 +11,9 @@ import ale_py
 gym.register_envs(ale_py)
 
 from envs.base_env import BaseGameEnv
-from envs.wrappers import FrameStack, preprocess_frame
+from envs.wrappers import FrameStack, preprocess_frame, ClipRewardEnv
 from envs.games import GAME_REGISTRY
+from envs.games.video_pinball import VideoPinballEnv
 
 
 def make_env(game_name: str, frame_stack: int = 4, frame_skip: int = 4, 
@@ -52,4 +53,4 @@ def make_env(game_name: str, frame_stack: int = 4, frame_skip: int = 4,
     return env
 
 
-__all__ = ['make_env', 'BaseGameEnv', 'FrameStack', 'preprocess_frame']
+__all__ = ['make_env', 'BaseGameEnv', 'FrameStack', 'preprocess_frame', 'ClipRewardEnv', 'VideoPinballEnv']

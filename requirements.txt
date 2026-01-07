@@ -1,10 +1,29 @@
-# ALE 与深度学习依赖
-gymnasium[atari]>=0.29.0
-AutoROM[accept-rom-license]>=0.6.1
-pygame>=2.1.0
+# ============================================
+# DQN-2013 项目环境依赖
+# ============================================
 
-# 数值计算
-numpy>=1.24.0
+# ----- Atari 游戏环境 -----
+gymnasium[atari]>=0.29.0      # Gymnasium + Atari 游戏支持
+ale-py>=0.8.1                 # Arcade Learning Environment
+AutoROM[accept-rom-license]   # 自动下载 Atari ROM
 
-# 图像处理
-opencv-python>=4.8.0
+# ----- 深度学习框架 -----
+torch>=2.0.0                  # PyTorch (CPU/CUDA)
+# torch>=2.0.0+cu118          # 如需 CUDA 12，取消注释此行
+
+# ----- 数值计算 -----
+numpy>=1.24.0                 # 数组操作
+
+# ----- 图像处理 -----
+opencv-python>=4.8.0          # 图像预处理 (灰度化、缩放)
+
+# ----- 可视化 -----
+pygame>=2.1.0                 # 游戏画面渲染
+matplotlib>=3.7.0             # 训练曲线绘制（train.ipynb 需要）
+
+# ----- 视频录制 -----
+imageio[ffmpeg]>=2.31.0       # 评估视频保存
+
+# ----- Jupyter（可选） -----
+# jupyter>=1.0.0              # Jupyter Notebook
+# ipykernel>=6.0.0            # Jupyter 内核

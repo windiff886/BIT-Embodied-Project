@@ -140,3 +140,33 @@ class FrameStack:
     def unwrapped(self):
         """获取底层未包装的环境"""
         return self._env.unwrapped
+
+
+class ClipRewardEnv:
+    """
+    奖励裁剪包装器
+
+    将奖励裁剪到 {-1, 0, 1}：
+    - x > 0 -> 1
+    - x < 0 -> -1
+    - x = 0 -> 0
+    """
+
+    def __init__(self, env):
+        self._env = env
+
+    def reset(self, seed: int = None) -> np.ndarray:
+        return self._env.reset(seed=seed)
+
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
+        obs, reward, done, info = self._env.step(action)
+        if reward > 0:
+            reward = 1.0
+        elif reward < 0:
+            reward = -1.0
+        else:
+            reward = 0.0
+        return obs, reward, done, info
+
+    def __getattr__(self, name):
+        return getattr(self._env, name)
