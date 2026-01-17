@@ -4,7 +4,7 @@
 提供 DQN 所需的图像预处理和帧堆叠功能。
 """
 
-from typing import Tuple
+from typing import Tuple, Optional
 from collections import deque
 import numpy as np
 import cv2
@@ -12,21 +12,30 @@ import gymnasium as gym
 from gymnasium import spaces
 
 
-def preprocess_frame(frame: np.ndarray, target_size: Tuple[int, int] = (84, 84)) -> np.ndarray:
+def preprocess_frame(
+    frame: np.ndarray,
+    target_size: Tuple[int, int] = (84, 84),
+    prev_frame: Optional[np.ndarray] = None
+) -> np.ndarray:
     """
     预处理游戏帧，符合 DQN 论文规范
     
     处理步骤：
+    0. （可选）与上一帧逐像素取 max，减少闪烁
     1. 转换为灰度图
     2. 缩放至目标尺寸 (84x84)
     
     Args:
         frame: 原始 RGB 帧，形状 (H, W, 3)
         target_size: 目标尺寸，默认 (84, 84)
+        prev_frame: 上一帧 RGB 图像（用于抗闪烁）
     
     Returns:
         预处理后的灰度帧，形状 (84, 84)，uint8 类型
     """
+    if prev_frame is not None:
+        frame = np.maximum(frame, prev_frame)
+
     # 转换为灰度图
     gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     

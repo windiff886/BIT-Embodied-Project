@@ -1,7 +1,7 @@
 """
 经验回放缓冲区 (Experience Replay Buffer)
 
-按照 DQN 2013 原始论文实现：
+采用 DQN 2013 论文的内存优化机制：
 - 只存储单帧，节省 75% 内存
 - 采样时动态拼接 4 帧构建状态
 - 正确处理 episode 边界
@@ -28,7 +28,7 @@ class _EnvBuffer:
 
 class ReplayBuffer:
     """
-    经验回放缓冲区（原始论文实现）
+    经验回放缓冲区（内存优化版）
 
     多环境场景下为每个环境维护独立缓冲区，采样时只在同一环境内拼帧。
     """
@@ -109,7 +109,7 @@ class ReplayBuffer:
         1. 缓冲区开头（数据不足）
         2. Episode 边界（不跨越 terminal）
         """
-        state = np.zeros((self.history_len, *self.frame_shape), dtype=np.float32)
+        state = np.zeros((self.history_len, *self.frame_shape), dtype=np.uint8)
 
         for i in range(self.history_len):
             # 从后往前取帧
@@ -127,7 +127,7 @@ class ReplayBuffer:
                 if frame_idx >= env_buf.size or frame_idx > index:
                     continue
 
-            state[i] = env_buf.frames[frame_idx].astype(np.float32) / 255.0
+            state[i] = env_buf.frames[frame_idx]
 
         return state
 
@@ -158,6 +158,11 @@ class ReplayBuffer:
 
         Returns:
             (states, actions, rewards, next_states, dones)
+            - states: (batch, 4, 84, 84) uint8
+            - actions: (batch,) int32
+            - rewards: (batch,) float32
+            - next_states: (batch, 4, 84, 84) uint8
+            - dones: (batch,) float32
         """
         valid_envs = []
         valid_counts = []
@@ -215,14 +220,3 @@ class ReplayBuffer:
 
     def __len__(self) -> int:
         return sum(env_buf.size for env_buf in self.env_buffers)
-
-
-# 保留 Transition 类以保持 API 兼容（但不再使用）
-@dataclass
-class Transition:
-    """已废弃，保留仅为兼容"""
-    state: np.ndarray
-    action: int
-    reward: float
-    next_state: np.ndarray
-    done: bool
