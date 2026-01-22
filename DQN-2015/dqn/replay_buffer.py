@@ -108,19 +108,23 @@ class ReplayBuffer:
         处理两种边界情况：
         1. 缓冲区开头（数据不足）
         2. Episode 边界（不跨越 terminal）
+
+        关键：一旦遇到 terminal，该位置及之前的所有帧都用零填充，
+        避免混合不同 episode 的帧。
         """
         state = np.zeros((self.history_len, *self.frame_shape), dtype=np.uint8)
 
-        for i in range(self.history_len):
-            # 从后往前取帧
-            frame_idx = (index - self.history_len + 1 + i) % env_buf.capacity
+        # 从后往前扫描，找到最近的 terminal 边界
+        # valid_start 表示从哪个位置开始取有效帧（之前的全部用零）
+        valid_start = 0
+        for i in range(self.history_len - 1, 0, -1):
+            check_idx = (index - self.history_len + i) % env_buf.capacity
+            if env_buf.terminals[check_idx]:
+                valid_start = i
+                break
 
-            # 检查是否跨越了 terminal（episode 边界）
-            # 如果中间有 terminal，前面的帧用零填充
-            if i > 0:
-                check_idx = (index - self.history_len + i) % env_buf.capacity
-                if env_buf.terminals[check_idx]:
-                    continue
+        for i in range(valid_start, self.history_len):
+            frame_idx = (index - self.history_len + 1 + i) % env_buf.capacity
 
             # 检查是否超出有效数据范围
             if env_buf.size < env_buf.capacity:
@@ -132,9 +136,21 @@ class ReplayBuffer:
         return state
 
     def _get_invalid_range(self, env_buf: _EnvBuffer) -> set:
+        """
+        返回不能采样的索引集合。
+
+        无效索引的原因：
+        1. buffer 未满时：前 history_len-1 个位置没有足够历史帧
+        2. buffer 满时：index 附近的位置会导致 state 或 next_state 跨越循环断点，
+           混合最新和最旧的数据。
+
+        当 buffer 满时，无效范围是 {index-1, index, index+1, ..., index+history_len-2}，
+        即从 index-1 开始的连续 history_len 个位置。
+        """
         if env_buf.size < env_buf.capacity:
             return set(range(self.history_len - 1))
-        return set((env_buf.index - i) % env_buf.capacity for i in range(self.history_len))
+        # 返回 {index-1, index, index+1, ..., index+history_len-2}
+        return set((env_buf.index - 1 + i) % env_buf.capacity for i in range(self.history_len))
 
     def _valid_count(self, env_buf: _EnvBuffer, invalid_range: set) -> int:
         max_index = env_buf.size - 1

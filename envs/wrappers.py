@@ -211,6 +211,9 @@ class ClipRewardEnv:
         else:
             obs, reward, terminated, truncated, info = result
         
+        # 保存原始奖励到 info 中，用于日志显示
+        raw_reward = reward
+        
         # 奖励裁剪
         if reward > 0:
             reward = 1.0
@@ -218,6 +221,9 @@ class ClipRewardEnv:
             reward = -1.0
         else:
             reward = 0.0
+        
+        # 在 info 中累加原始分数
+        info['raw_reward'] = raw_reward
         return obs, reward, terminated, truncated, info
 
     def __getattr__(self, name):
