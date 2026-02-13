@@ -45,3 +45,8 @@
 *videos
 *.idea
 *.vscode
+
+*.aux
+*.log
+*.toc
+*.bbl
